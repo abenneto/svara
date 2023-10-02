@@ -17,3 +17,15 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["svara*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["svara", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "NPY"]
+ignore = ["B905"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["svara"]
