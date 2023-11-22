@@ -12,7 +12,7 @@ import numpy as np
 from scipy.io import wavfile
 
 from svara.exceptions import AudioIOError
-from svara.utils import FloatArray
+from svara.utils import FloatArray, as_float_array
 
 # 各整数 PCM 位宽对应的归一化除数。
 _INT_SCALE = {
@@ -52,3 +52,17 @@ def _to_float(data: np.ndarray) -> FloatArray:
     if scale is None:
         raise AudioIOError(f"不支持的 PCM 位宽：{dtype}")
     return data.astype(np.float64) / scale
+
+
+def write_wav(path: str | Path, signal: FloatArray, sample_rate: int) -> None:
+    """把 ``[-1, 1]`` 范围的浮点信号写成 16-bit PCM 的 WAV 文件。
+
+    超出范围的样点会被裁剪，避免整数溢出产生爆音。
+    """
+    sig = as_float_array(signal)
+    clipped = np.clip(sig, -1.0, 1.0)
+    pcm = np.round(clipped * (_INT_SCALE[np.dtype(np.int16)] - 1)).astype(np.int16)
+    try:
+        wavfile.write(str(path), int(sample_rate), pcm)
+    except OSError as exc:  # pragma: no cover - 依赖文件系统
+        raise AudioIOError(f"无法写入音频文件：{path}") from exc
