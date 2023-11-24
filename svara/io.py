@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.io import wavfile
+from scipy.signal import resample_poly
 
 from svara.exceptions import AudioIOError
 from svara.utils import FloatArray, as_float_array
@@ -66,3 +67,19 @@ def write_wav(path: str | Path, signal: FloatArray, sample_rate: int) -> None:
         wavfile.write(str(path), int(sample_rate), pcm)
     except OSError as exc:  # pragma: no cover - 依赖文件系统
         raise AudioIOError(f"无法写入音频文件：{path}") from exc
+
+
+def resample(signal: FloatArray, orig_sr: int, target_sr: int) -> FloatArray:
+    """把信号从 ``orig_sr`` 重采样到 ``target_sr``。
+
+    使用 :func:`scipy.signal.resample_poly` 的多相滤波实现——相比 FFT 方法，
+    它对非整数倍率更稳健，也不会在端点引入振铃。倍率会先用最大公约数约分。
+    """
+    sig = as_float_array(signal)
+    if orig_sr == target_sr:
+        return sig
+    gcd = int(np.gcd(int(orig_sr), int(target_sr)))
+    up = target_sr // gcd
+    down = orig_sr // gcd
+    resampled: FloatArray = resample_poly(sig, up, down).astype(np.float64)
+    return resampled
