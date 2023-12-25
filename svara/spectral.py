@@ -35,3 +35,14 @@ def stft(
         pad = n_fft - win
         windowed = np.pad(windowed, ((0, 0), (0, pad)))
     return np.fft.rfft(windowed, n=n_fft, axis=1)
+
+
+def magnitude_spectrum(complex_spec: ComplexArray) -> FloatArray:
+    """复数谱的幅度 ``|X|``。"""
+    return np.abs(complex_spec).astype(np.float64)
+
+
+def power_spectrum(complex_spec: ComplexArray) -> FloatArray:
+    """复数谱的功率 ``|X|**2``。"""
+    mag = np.abs(complex_spec)
+    return (mag * mag).astype(np.float64)
