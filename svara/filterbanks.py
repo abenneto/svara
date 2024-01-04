@@ -52,3 +52,32 @@ def mel_filterbank(
         falling = (right - fft_freqs) / max(right - center, 1e-12)
         fb[m - 1] = np.clip(np.minimum(rising, falling), 0.0, None)
     return fb
+
+
+def linear_filterbank(
+    n_filters: int,
+    n_fft: int,
+    sample_rate: int,
+    fmin: float = 0.0,
+    fmax: float | None = None,
+) -> FloatArray:
+    """与 :func:`mel_filterbank` 结构相同，但中心点在 Hz 轴上等间隔。
+
+    在做 LFCC（线性频率倒谱系数）或需要均匀频率分辨率的分析时使用。
+    """
+    check_positive("n_filters", n_filters)
+    check_positive("n_fft", n_fft)
+    top = fmax if fmax is not None else sample_rate / 2.0
+    if not 0.0 <= fmin < top <= sample_rate / 2.0:
+        raise InvalidParameterError("需要满足 0 <= fmin < fmax <= sr/2")
+
+    fft_freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
+    hz_points = np.linspace(fmin, top, n_filters + 2)
+
+    fb = np.zeros((n_filters, fft_freqs.shape[0]), dtype=np.float64)
+    for m in range(1, n_filters + 1):
+        left, center, right = hz_points[m - 1], hz_points[m], hz_points[m + 1]
+        rising = (fft_freqs - left) / max(center - left, 1e-12)
+        falling = (right - fft_freqs) / max(right - center, 1e-12)
+        fb[m - 1] = np.clip(np.minimum(rising, falling), 0.0, None)
+    return fb
