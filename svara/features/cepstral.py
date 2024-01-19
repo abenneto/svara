@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.fft import dct
 
+from svara.features.melspec import log_mel_spectrogram
 from svara.utils import FloatArray
 
 
@@ -28,3 +29,32 @@ def sinusoidal_lifter(cepstra: FloatArray, lift: int = 22) -> FloatArray:
     n = np.arange(cepstra.shape[1])
     weights = 1.0 + (lift / 2.0) * np.sin(np.pi * n / lift)
     return cepstra * weights
+
+
+def mfcc(
+    signal: FloatArray,
+    sample_rate: int,
+    n_mfcc: int = 13,
+    n_fft: int = 512,
+    hop_length: int | None = None,
+    n_mels: int = 40,
+    fmin: float = 0.0,
+    fmax: float | None = None,
+    lift: int = 22,
+) -> FloatArray:
+    """梅尔频率倒谱系数（MFCC）。
+
+    流程：对数梅尔谱 -> DCT-II -> 取前 ``n_mfcc`` 阶 -> 正弦倒谱提升。
+    返回 ``(n_frames, n_mfcc)``。
+    """
+    log_mel = log_mel_spectrogram(
+        signal,
+        sample_rate,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        n_mels=n_mels,
+        fmin=fmin,
+        fmax=fmax,
+    )
+    cepstra = dct_ii(log_mel, n_mfcc)
+    return sinusoidal_lifter(cepstra, lift=lift)
