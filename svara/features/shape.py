@@ -25,3 +25,28 @@ def spectral_bandwidth(
     energy = spectrum.sum(axis=1) + EPS
     deviation = np.abs(freqs[None, :] - centroid) ** p
     return ((spectrum * deviation).sum(axis=1) / energy) ** (1.0 / p)
+
+
+def spectral_rolloff(
+    spectrum: FloatArray, freqs: FloatArray, roll_percent: float = 0.85
+) -> FloatArray:
+    """谱滚降点：累计能量首次达到总能量 ``roll_percent`` 的频率。"""
+    if not 0.0 < roll_percent < 1.0:
+        raise ValueError("roll_percent 需在 (0, 1) 之间")
+    cumulative = np.cumsum(spectrum, axis=1)
+    thresholds = roll_percent * cumulative[:, -1:]
+    # 每帧第一个累计能量达到阈值的 bin
+    reached = cumulative >= thresholds
+    idx = np.argmax(reached, axis=1)
+    return freqs[idx]
+
+
+def spectral_flatness(spectrum: FloatArray) -> FloatArray:
+    """谱平坦度：几何均值与算术均值之比。
+
+    接近 1 表示类噪声（能量均匀铺开），接近 0 表示类音调（能量集中在少数谐波）。
+    """
+    power = spectrum + EPS
+    geometric = np.exp(np.mean(np.log(power), axis=1))
+    arithmetic = np.mean(power, axis=1)
+    return geometric / arithmetic
