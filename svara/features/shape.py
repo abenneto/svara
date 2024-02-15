@@ -17,9 +17,7 @@ def spectral_centroid(spectrum: FloatArray, freqs: FloatArray) -> FloatArray:
     return (spectrum * freqs).sum(axis=1) / energy
 
 
-def spectral_bandwidth(
-    spectrum: FloatArray, freqs: FloatArray, p: float = 2.0
-) -> FloatArray:
+def spectral_bandwidth(spectrum: FloatArray, freqs: FloatArray, p: float = 2.0) -> FloatArray:
     """谱带宽：各频点到质心距离的 ``p`` 阶加权矩，反映能量的频域展布。"""
     centroid = spectral_centroid(spectrum, freqs)[:, None]
     energy = spectrum.sum(axis=1) + EPS

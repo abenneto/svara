@@ -20,9 +20,7 @@ def mel_spectrogram(
     window: str = "hann",
 ) -> FloatArray:
     """把功率谱通过梅尔滤波器组，得到 ``(n_frames, n_mels)`` 的梅尔谱。"""
-    psd = spectrogram(
-        signal, n_fft=n_fft, hop_length=hop_length, window=window, power=2.0
-    )
+    psd = spectrogram(signal, n_fft=n_fft, hop_length=hop_length, window=window, power=2.0)
     fb = mel_filterbank(n_mels, n_fft, sample_rate, fmin=fmin, fmax=fmax)
     return psd @ fb.T
 
