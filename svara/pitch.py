@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+from numpy.typing import NDArray
 
 from svara.exceptions import InvalidParameterError
 from svara.framing import apply_window, frame_signal
@@ -209,6 +210,6 @@ def estimate_f0(
     return fn(signal, sample_rate, **kwargs)
 
 
-def voiced_flags(f0: FloatArray) -> FloatArray:
+def voiced_flags(f0: FloatArray) -> NDArray[np.bool_]:
     """把 F0 序列转成布尔的清浊音标记（``f0 > 0`` 记为浊音）。"""
     return f0 > 0.0
