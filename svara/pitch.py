@@ -101,9 +101,7 @@ def _parabolic_refine(values: FloatArray, tau: int) -> float:
     return float(tau) + 0.5 * (a - c) / denom
 
 
-def _yin_frame(
-    cmndf: FloatArray, min_lag: int, threshold: float
-) -> float:
+def _yin_frame(cmndf: FloatArray, min_lag: int, threshold: float) -> float:
     """对单帧的 CMNDF 做绝对阈值搜索，返回基音周期（样点，可能是小数），清音返回 0。"""
     tau = min_lag
     n = cmndf.size

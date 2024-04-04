@@ -38,7 +38,7 @@ def levinson(r: FloatArray, order: int) -> tuple[FloatArray, float]:
     for i in range(1, order + 1):
         acc = r[i] + np.dot(a[1:i], r[i - 1 : 0 : -1])
         k = -acc / err
-        a[1 : i + 1] = a[1 : i + 1] + k * a[i - 1 :: -1][: i]
+        a[1 : i + 1] = a[1 : i + 1] + k * a[i - 1 :: -1][:i]
         err *= 1.0 - k * k
         if err <= 0.0:
             break
