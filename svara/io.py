@@ -6,13 +6,15 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from pathlib import Path
 
 import numpy as np
 from scipy.io import wavfile
 from scipy.signal import resample_poly
 
-from svara.exceptions import AudioIOError
+from svara.exceptions import AudioIOError, InvalidParameterError
 from svara.utils import FloatArray, as_float_array
 
 # 各整数 PCM 位宽对应的归一化除数。
@@ -83,3 +85,22 @@ def resample(signal: FloatArray, orig_sr: int, target_sr: int) -> FloatArray:
     down = orig_sr // gcd
     resampled: FloatArray = resample_poly(sig, up, down).astype(np.float64)
     return resampled
+
+
+def save_features(path: str | Path, features: FloatArray, fmt: str = "npy") -> None:
+    """把二维特征矩阵写成 ``npy`` / ``csv`` / ``json`` 之一。"""
+    arr = np.asarray(features, dtype=np.float64)
+    target = Path(path)
+    if fmt == "npy":
+        np.save(target, arr)
+    elif fmt == "csv":
+        np.savetxt(target, arr, delimiter=",")
+    elif fmt == "json":
+        target.write_text(json.dumps(arr.tolist()), encoding="utf-8")
+    else:
+        raise InvalidParameterError(f"不支持的输出格式：{fmt!r}")
+
+
+def save_feature_bundle(path: str | Path, features: Mapping[str, FloatArray]) -> None:
+    """把一组命名特征打包写入一个 ``.npz`` 文件。"""
+    np.savez(Path(path), **{k: np.asarray(v) for k, v in features.items()})
