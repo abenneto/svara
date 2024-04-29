@@ -14,15 +14,48 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 
+from svara.config import FeatureConfig
+from svara.io import read_wav, save_features
+from svara.pipeline import extract_features
+
+
+def _add_common_io(sub: argparse.ArgumentParser) -> None:
+    sub.add_argument("input", help="输入 WAV 文件路径")
+    sub.add_argument("-o", "--output", required=True, help="输出文件路径")
+
+
+def _cmd_extract(args: argparse.Namespace) -> int:
+    signal, sr = read_wav(args.input)
+    config = FeatureConfig(sample_rate=sr, n_mfcc=args.n_mfcc, n_mels=args.n_mels)
+    feats = extract_features(signal, config=config, f0_method=args.f0_method)
+    save_features(args.output, feats[args.feature], fmt=args.format)
+    print(f"已写出 {args.feature}，形状 {feats[args.feature].shape} -> {args.output}")
+    return 0
+
 
 def build_parser() -> argparse.ArgumentParser:
-    """构造顶层参数解析器（子命令在后续提交里逐个挂上）。"""
+    """构造顶层参数解析器及各子命令。"""
     parser = argparse.ArgumentParser(
         prog="svara",
         description="语音特征提取与声学表示工具箱",
     )
     parser.add_argument("--version", action="store_true", help="打印版本号后退出")
-    parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="command")
+
+    extract = subparsers.add_parser("extract", help="提取帧级特征并保存")
+    _add_common_io(extract)
+    extract.add_argument(
+        "--feature",
+        default="mfcc",
+        choices=["mfcc", "log_mel", "mfcc_delta", "mfcc_delta2"],
+        help="要导出的特征名",
+    )
+    extract.add_argument("--n-mfcc", type=int, default=13, dest="n_mfcc")
+    extract.add_argument("--n-mels", type=int, default=40, dest="n_mels")
+    extract.add_argument("--f0-method", default="yin", dest="f0_method")
+    extract.add_argument("--format", default="npy", choices=["npy", "csv", "json"])
+    extract.set_defaults(handler=_cmd_extract)
+
     return parser
 
 
@@ -37,8 +70,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(__version__)
         return 0
 
-    parser.print_help()
-    return 0
+    handler = getattr(args, "handler", None)
+    if handler is None:
+        parser.print_help()
+        return 0
+    result: int = handler(args)
+    return result
 
 
 if __name__ == "__main__":  # pragma: no cover
