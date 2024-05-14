@@ -103,4 +103,6 @@ def save_features(path: str | Path, features: FloatArray, fmt: str = "npy") -> N
 
 def save_feature_bundle(path: str | Path, features: Mapping[str, FloatArray]) -> None:
     """把一组命名特征打包写入一个 ``.npz`` 文件。"""
-    np.savez(Path(path), **{k: np.asarray(v) for k, v in features.items()})
+    arrays = {k: np.asarray(v, dtype=np.float64) for k, v in features.items()}
+    # numpy 的 savez 存根把 **kwds 标注成 bool，这里的动态键名无法被静态匹配。
+    np.savez(Path(path), **arrays)  # type: ignore[arg-type]

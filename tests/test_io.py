@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from svara.io import read_wav, resample, write_wav
+from svara.io import read_wav, resample, save_feature_bundle, write_wav
 
 
 def test_wav_roundtrip(sine: Callable[..., np.ndarray], sr: int, tmp_path: Path) -> None:
@@ -39,3 +39,12 @@ def test_write_clips_out_of_range(tmp_path: Path) -> None:
     write_wav(path, loud, 16000)
     loaded, _ = read_wav(path)
     assert np.all(np.abs(loaded) <= 1.0)
+
+
+def test_feature_bundle_roundtrip(tmp_path: Path) -> None:
+    bundle = {"mfcc": np.zeros((5, 13)), "f0": np.arange(5.0)}
+    path = tmp_path / "feats.npz"
+    save_feature_bundle(path, bundle)
+    loaded = np.load(path)
+    assert set(loaded.files) == {"mfcc", "f0"}
+    assert loaded["mfcc"].shape == (5, 13)
