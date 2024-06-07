@@ -59,8 +59,15 @@ def f0_autocorrelation(
     best = np.argmax(segment, axis=1) + min_lag
     peak = ac[np.arange(ac.shape[0]), best]
 
+    # 抛物线插值：用峰值两侧的邻点把整数滞后细化到亚样本，减小量化误差
+    rows = np.arange(ac.shape[0])
+    left = ac[rows, best - 1]
+    right = ac[rows, best + 1]
+    denom = left - 2.0 * peak + right
     with np.errstate(divide="ignore", invalid="ignore"):
-        f0 = np.where(best > 0, sample_rate / best, 0.0)
+        shift = np.where(denom != 0.0, 0.5 * (left - right) / denom, 0.0)
+        refined = best + np.clip(shift, -0.5, 0.5)
+        f0 = np.where(refined > 0, sample_rate / refined, 0.0)
     voiced = (r0 > 0) & (peak > voicing_threshold * r0)
     return np.where(voiced, f0, 0.0)
 
