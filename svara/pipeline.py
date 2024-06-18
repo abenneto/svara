@@ -10,7 +10,7 @@ import numpy as np
 
 from svara.config import FeatureConfig
 from svara.features.cepstral import mfcc
-from svara.features.dynamic import delta, delta_delta
+from svara.features.deltas import delta, delta_delta
 from svara.features.melspec import log_mel_spectrogram
 from svara.pitch import estimate_f0
 from svara.utils import FloatArray, as_float_array

@@ -13,7 +13,7 @@
 from __future__ import annotations
 
 from svara.features.cepstral import lfcc, mfcc
-from svara.features.dynamic import delta, delta_delta
+from svara.features.deltas import delta, delta_delta
 from svara.features.melspec import log_mel_spectrogram, mel_spectrogram
 from svara.formant import formants, track_formants
 from svara.framing import frame_signal, preemphasis

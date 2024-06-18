@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 from svara import mfcc, read_wav
-from svara.features.dynamic import delta, delta_delta
+from svara.features.deltas import delta, delta_delta
 
 
 def demo_signal(sr: int = 16000, duration: float = 1.0, f0: float = 130.0) -> np.ndarray:
