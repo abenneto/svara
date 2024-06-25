@@ -39,19 +39,3 @@ def next_power_of_two(n: int) -> int:
     """返回不小于 ``n`` 的最小 2 的幂。"""
     check_positive("n", n)
     return 1 if n == 1 else int(2 ** np.ceil(np.log2(n)))
-
-
-def num_frames(n_samples: int, frame_length: int, hop_length: int) -> int:
-    """给定信号长度，计算滑窗后得到的帧数（不做居中补零）。"""
-    if n_samples < frame_length:
-        return 0
-    return 1 + (n_samples - frame_length) // hop_length
-
-
-def amplitude_to_db(x: FloatArray, ref: float = 1.0, top_db: float = 80.0) -> FloatArray:
-    """把（非负的）幅度谱转换成分贝刻度，并按 ``top_db`` 截断动态范围。"""
-    magnitude = np.abs(x)
-    db = 20.0 * np.log10(np.maximum(EPS, magnitude) / max(EPS, ref))
-    if top_db is not None:
-        db = np.maximum(db, db.max() - top_db)
-    return db
