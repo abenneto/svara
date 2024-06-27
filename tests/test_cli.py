@@ -45,3 +45,9 @@ def test_f0_writes_csv(tmp_path: Path, sine: Callable[..., np.ndarray], sr: int)
 def test_no_command_prints_help(capsys) -> None:  # type: ignore[no-untyped-def]
     assert main([]) == 0
     assert "usage" in capsys.readouterr().out.lower()
+
+
+def test_missing_input_reports_friendly_error(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    code = main(["f0", str(tmp_path / "nope.wav"), "-o", str(tmp_path / "out.npy")])
+    assert code == 1
+    assert "找不到" in capsys.readouterr().err
