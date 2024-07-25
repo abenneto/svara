@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "svara"
-version = "0.0.0"
+version = "0.1.0"
 description = "语音特征提取与声学表示工具箱（纯 NumPy/SciPy，离线可复现）"
 readme = "README.md"
 requires-python = ">=3.9"
