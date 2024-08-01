@@ -22,7 +22,8 @@ jobs:
           python -m build
       - name: Verify version matches tag
         run: |
-          python -c "import svara, os; tag=os.environ['GITHUB_REF_NAME'].lstrip('v'); assert svara.__version__==tag, f'{svara.__version__} != {tag}'"
+          python -m pip install --no-deps dist/*.whl
+          python -c "import os; from importlib.metadata import version; tag=os.environ['GITHUB_REF_NAME'].removeprefix('v'); pkg=version('svara'); assert pkg==tag, f'{pkg} != {tag}'"
         env:
           GITHUB_REF_NAME: ${{ github.ref_name }}
       - name: Create GitHub release
