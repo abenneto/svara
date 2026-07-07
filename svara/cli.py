@@ -12,13 +12,23 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from svara.config import FeatureConfig
+from svara.exceptions import SvaraError
 from svara.formant import track_formants
 from svara.io import read_wav, save_features
 from svara.pipeline import extract_features
 from svara.pitch import estimate_f0
+
+
+def _load_input(path: str) -> tuple:
+    """读取输入音频，文件不存在时给出清晰的报错而非底层栈信息。"""
+    if not Path(path).is_file():
+        raise SvaraError(f"找不到输入文件：{path}")
+    return read_wav(path)
 
 
 def _add_common_io(sub: argparse.ArgumentParser) -> None:
@@ -27,7 +37,7 @@ def _add_common_io(sub: argparse.ArgumentParser) -> None:
 
 
 def _cmd_extract(args: argparse.Namespace) -> int:
-    signal, sr = read_wav(args.input)
+    signal, sr = _load_input(args.input)
     config = FeatureConfig(sample_rate=sr, n_mfcc=args.n_mfcc, n_mels=args.n_mels)
     feats = extract_features(signal, config=config, f0_method=args.f0_method)
     save_features(args.output, feats[args.feature], fmt=args.format)
@@ -36,7 +46,7 @@ def _cmd_extract(args: argparse.Namespace) -> int:
 
 
 def _cmd_f0(args: argparse.Namespace) -> int:
-    signal, sr = read_wav(args.input)
+    signal, sr = _load_input(args.input)
     f0 = estimate_f0(
         signal, sr, method=args.method, fmin=args.fmin, fmax=args.fmax, hop_length=args.hop
     )
@@ -47,7 +57,7 @@ def _cmd_f0(args: argparse.Namespace) -> int:
 
 
 def _cmd_formants(args: argparse.Namespace) -> int:
-    signal, sr = read_wav(args.input)
+    signal, sr = _load_input(args.input)
     track = track_formants(signal, sr, n_formants=args.n_formants, hop_length=args.hop)
     save_features(args.output, track, fmt=args.format)
     print(f"共振峰轨迹形状 {track.shape} -> {args.output}")
@@ -111,7 +121,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if handler is None:
         parser.print_help()
         return 0
-    result: int = handler(args)
+    try:
+        result: int = handler(args)
+    except SvaraError as exc:
+        print(f"错误：{exc}", file=sys.stderr)
+        return 1
     return result
 
 
