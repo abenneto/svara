@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-08
+
 ### Added
 - MFCC / LFCC、谱形状与时域特征、一阶/二阶差分。
 - 自相关 / YIN / 倒谱三种 F0 估计器及统一入口 `estimate_f0`。
@@ -13,6 +15,10 @@
 - `svara` 命令行：`extract` / `f0` / `formants` 子命令。
 - 端到端特征流水线 `extract_features` 与 `FeatureConfig`。
 
+### Changed
+- 自相关 F0 增加抛物线插值，提升高音区精度。
+- 梅尔与线性滤波器组改为向量化构造。
+
 ## [0.0.1]
 
 ### Added
@@ -20,5 +26,6 @@
 - WAV 读写与多相重采样。
 - 分帧、加窗、STFT 与谱图等基础短时分析原语。
 
-[Unreleased]: https://github.com/abenneto/svara/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/abenneto/svara/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/abenneto/svara/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/abenneto/svara/releases/tag/v0.0.1
