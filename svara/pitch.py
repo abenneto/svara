@@ -60,3 +60,28 @@ def f0_autocorrelation(
         f0 = np.where(best > 0, sample_rate / best, 0.0)
     voiced = (r0 > 0) & (peak > voicing_threshold * r0)
     return np.where(voiced, f0, 0.0)
+
+
+def _difference_function(frame: FloatArray, tau_max: int) -> FloatArray:
+    """YIN 的差分函数 ``d(tau) = Σ_j (x[j] - x[j+tau])^2``。
+
+    借助平方和的累加与自相关，在 ``O(N log N)`` 内算出所有滞后，避免二重循环。
+    """
+    w = frame.size
+    tau_max = min(tau_max, w)
+    cumsum = np.concatenate(([0.0], np.cumsum(frame * frame)))
+    nfft = next_power_of_two(2 * w)
+    spec = np.fft.rfft(frame, n=nfft)
+    acf = np.fft.irfft(spec * np.conj(spec), n=nfft)[:tau_max]
+    tau = np.arange(tau_max)
+    return cumsum[w - tau] + (cumsum[w] - cumsum[tau]) - 2.0 * acf
+
+
+def _cumulative_mean_normalized_difference(diff: FloatArray) -> FloatArray:
+    """把差分函数归一化为 CMNDF，使其在小滞后处不再总是偏小。"""
+    out = np.empty_like(diff)
+    out[0] = 1.0
+    tau = np.arange(1, diff.size)
+    running = np.cumsum(diff[1:])
+    out[1:] = diff[1:] * tau / np.maximum(running, np.finfo(np.float64).tiny)
+    return out
