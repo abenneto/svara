@@ -21,7 +21,7 @@ from svara.io import read_wav, resample, write_wav
 from svara.pitch import estimate_f0, voiced_flags
 from svara.spectral import spectrogram, stft
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 __all__ = [
     "__version__",
