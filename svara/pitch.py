@@ -10,8 +10,8 @@ from __future__ import annotations
 import numpy as np
 
 from svara.exceptions import InvalidParameterError
-from svara.framing import frame_signal
-from svara.utils import FloatArray, as_float_array, next_power_of_two
+from svara.framing import apply_window, frame_signal
+from svara.utils import EPS, FloatArray, as_float_array, next_power_of_two
 
 # 语音默认的搜索范围（Hz）。
 DEFAULT_FMIN = 50.0
@@ -141,3 +141,40 @@ def f0_yin(
         if period > 0.0:
             f0[i] = sample_rate / period
     return f0
+
+
+def f0_cepstrum(
+    signal: FloatArray,
+    sample_rate: int,
+    fmin: float = DEFAULT_FMIN,
+    fmax: float = DEFAULT_FMAX,
+    frame_length: int = 1024,
+    hop_length: int = 256,
+    window: str = "hann",
+    prominence: float = 3.0,
+) -> FloatArray:
+    """倒谱法估计 F0。
+
+    实倒谱 ``IFFT(log|FFT(x)|)`` 会把周期性激励的谐波结构折叠成基音周期处的
+    一个尖峰。峰值相对于搜索区间内幅度中位数的“突出度”低于 ``prominence`` 时
+    判为清音。
+    """
+    max_q = int(np.ceil(sample_rate / fmin))
+    min_q = max(1, int(np.floor(sample_rate / fmax)))
+    if max_q >= frame_length:
+        raise InvalidParameterError("frame_length 太短，无法覆盖 fmin 对应的周期")
+
+    frames = frame_signal(as_float_array(signal), frame_length, hop_length)
+    windowed = apply_window(frames, window=window)
+    spec = np.fft.rfft(windowed, n=frame_length, axis=1)
+    log_mag = np.log(np.abs(spec) + EPS)
+    cepstrum = np.fft.irfft(log_mag, n=frame_length, axis=1)
+
+    segment = cepstrum[:, min_q : max_q + 1]
+    best = np.argmax(segment, axis=1) + min_q
+    peak = cepstrum[np.arange(cepstrum.shape[0]), best]
+    baseline = np.median(np.abs(segment), axis=1) + EPS
+
+    voiced = peak > prominence * baseline
+    f0 = np.where(best > 0, sample_rate / best, 0.0)
+    return np.where(voiced, f0, 0.0)
