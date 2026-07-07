@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from svara.utils import FloatArray, as_float_array
+from svara.exceptions import InvalidParameterError
+from svara.utils import FloatArray, as_float_array, check_positive
 
 
 def preemphasis(signal: FloatArray, coef: float = 0.97) -> FloatArray:
@@ -20,3 +21,34 @@ def preemphasis(signal: FloatArray, coef: float = 0.97) -> FloatArray:
     y[0] = x[0]
     y[1:] = x[1:] - coef * x[:-1]
     return y
+
+
+def frame_signal(
+    signal: FloatArray,
+    frame_length: int,
+    hop_length: int,
+    *,
+    pad: bool = True,
+) -> FloatArray:
+    """把一维信号切成 ``(n_frames, frame_length)`` 的二维数组。
+
+    使用 :func:`numpy.lib.stride_tricks.sliding_window_view` 做零拷贝滑窗，
+    再按 ``hop_length`` 抽取，因此内存开销与帧数无关。当 ``pad=True`` 时，
+    信号末尾会补零以容纳最后一个不完整帧。
+    """
+    check_positive("frame_length", frame_length)
+    check_positive("hop_length", hop_length)
+    x = as_float_array(signal)
+
+    if x.size < frame_length:
+        if not pad:
+            raise InvalidParameterError("信号比一帧还短，且 pad=False")
+        x = np.pad(x, (0, frame_length - x.size))
+    elif pad:
+        remainder = (x.size - frame_length) % hop_length
+        if remainder != 0:
+            x = np.pad(x, (0, hop_length - remainder))
+
+    windows = np.lib.stride_tricks.sliding_window_view(x, frame_length)
+    frames = windows[::hop_length]
+    return np.ascontiguousarray(frames)
