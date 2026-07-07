@@ -9,6 +9,7 @@ from __future__ import annotations
 import numpy as np
 
 from svara.exceptions import InvalidParameterError
+from svara.framing import preemphasis
 from svara.utils import FloatArray, as_float_array, check_positive
 
 
@@ -51,3 +52,42 @@ def lpc(frame: FloatArray, order: int) -> FloatArray:
     r = autocorrelate(frame, order)
     coeffs, _ = levinson(r, order)
     return coeffs
+
+
+def _default_order(sample_rate: int) -> int:
+    """经验规则：每 1 kHz 采样率约对应一对极点，再加 2 的余量。"""
+    return 2 + sample_rate // 1000
+
+
+def formants(
+    frame: FloatArray,
+    sample_rate: int,
+    order: int | None = None,
+    max_formants: int = 5,
+    min_freq: float = 90.0,
+    max_bandwidth: float = 400.0,
+    preemph: float = 0.97,
+) -> FloatArray:
+    """估计单帧的共振峰频率（Hz，升序）。
+
+    对 LPC 预测多项式求根，每个位于上半平面的复根对应一个谐振：
+    其角度给出频率，模长给出带宽。过宽（衰减太快）或频率过低的根会被丢弃，
+    通常对应声门或数值噪声而非真正的共振峰。
+    """
+    order = order if order is not None else _default_order(sample_rate)
+    windowed = preemphasis(as_float_array(frame), coef=preemph)
+    windowed = windowed * np.hanning(windowed.size)
+    coeffs = lpc(windowed, order)
+
+    roots = np.roots(coeffs)
+    roots = roots[np.imag(roots) > 0.0]
+    if roots.size == 0:
+        return np.empty(0, dtype=np.float64)
+
+    angles = np.arctan2(np.imag(roots), np.real(roots))
+    freqs = angles * sample_rate / (2.0 * np.pi)
+    bandwidths = -0.5 * (sample_rate / (2.0 * np.pi)) * np.log(np.abs(roots))
+
+    keep = (freqs >= min_freq) & (freqs <= sample_rate / 2.0) & (bandwidths < max_bandwidth)
+    selected = np.sort(freqs[keep])
+    return selected[:max_formants]
