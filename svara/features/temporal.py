@@ -24,9 +24,7 @@ def zero_crossing_rate(
     return crossings / float(frame_length)
 
 
-def rms_energy(
-    signal: FloatArray, frame_length: int = 400, hop_length: int = 160
-) -> FloatArray:
+def rms_energy(signal: FloatArray, frame_length: int = 400, hop_length: int = 160) -> FloatArray:
     """每帧的均方根能量。"""
     frames = frame_signal(as_float_array(signal), frame_length, hop_length)
     return np.sqrt(np.mean(frames**2, axis=1))
