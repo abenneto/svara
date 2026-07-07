@@ -15,6 +15,7 @@ import argparse
 from collections.abc import Sequence
 
 from svara.config import FeatureConfig
+from svara.formant import track_formants
 from svara.io import read_wav, save_features
 from svara.pipeline import extract_features
 from svara.pitch import estimate_f0
@@ -42,6 +43,14 @@ def _cmd_f0(args: argparse.Namespace) -> int:
     save_features(args.output, f0.reshape(-1, 1), fmt=args.format)
     voiced = float((f0 > 0).mean())
     print(f"F0 帧数 {f0.size}，浊音占比 {voiced:.1%} -> {args.output}")
+    return 0
+
+
+def _cmd_formants(args: argparse.Namespace) -> int:
+    signal, sr = read_wav(args.input)
+    track = track_formants(signal, sr, n_formants=args.n_formants, hop_length=args.hop)
+    save_features(args.output, track, fmt=args.format)
+    print(f"共振峰轨迹形状 {track.shape} -> {args.output}")
     return 0
 
 
@@ -76,6 +85,13 @@ def build_parser() -> argparse.ArgumentParser:
     f0.add_argument("--hop", type=int, default=256)
     f0.add_argument("--format", default="npy", choices=["npy", "csv", "json"])
     f0.set_defaults(handler=_cmd_f0)
+
+    formants = subparsers.add_parser("formants", help="逐帧跟踪共振峰")
+    _add_common_io(formants)
+    formants.add_argument("--n-formants", type=int, default=4, dest="n_formants")
+    formants.add_argument("--hop", type=int, default=160)
+    formants.add_argument("--format", default="npy", choices=["npy", "csv", "json"])
+    formants.set_defaults(handler=_cmd_formants)
 
     return parser
 
