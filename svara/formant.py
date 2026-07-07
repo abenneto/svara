@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 
 from svara.exceptions import InvalidParameterError
-from svara.framing import preemphasis
+from svara.framing import frame_signal, preemphasis
 from svara.utils import FloatArray, as_float_array, check_positive
 
 
@@ -91,3 +91,36 @@ def formants(
     keep = (freqs >= min_freq) & (freqs <= sample_rate / 2.0) & (bandwidths < max_bandwidth)
     selected = np.sort(freqs[keep])
     return selected[:max_formants]
+
+
+def track_formants(
+    signal: FloatArray,
+    sample_rate: int,
+    n_formants: int = 4,
+    order: int | None = None,
+    frame_length: int = 400,
+    hop_length: int = 160,
+    min_freq: float = 90.0,
+    max_bandwidth: float = 400.0,
+    preemph: float = 0.97,
+) -> FloatArray:
+    """逐帧跟踪前 ``n_formants`` 个共振峰，返回 ``(n_frames, n_formants)``。
+
+    某帧检测到的共振峰不足时，缺失位置以 ``NaN`` 填充，便于下游用
+    :func:`numpy.nanmean` 之类的函数统计。
+    """
+    check_positive("n_formants", n_formants)
+    frames = frame_signal(as_float_array(signal), frame_length, hop_length)
+    out = np.full((frames.shape[0], n_formants), np.nan, dtype=np.float64)
+    for i, frame in enumerate(frames):
+        found = formants(
+            frame,
+            sample_rate,
+            order=order,
+            max_formants=n_formants,
+            min_freq=min_freq,
+            max_bandwidth=max_bandwidth,
+            preemph=preemph,
+        )
+        out[i, : found.size] = found
+    return out
