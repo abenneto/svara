@@ -46,3 +46,30 @@ def power_spectrum(complex_spec: ComplexArray) -> FloatArray:
     """复数谱的功率 ``|X|**2``。"""
     mag = np.abs(complex_spec)
     return (mag * mag).astype(np.float64)
+
+
+def spectrogram(
+    signal: FloatArray,
+    n_fft: int = 512,
+    hop_length: int | None = None,
+    win_length: int | None = None,
+    window: str = "hann",
+    power: float = 2.0,
+) -> FloatArray:
+    """一步得到（功率或幅度）谱图。
+
+    ``power=1`` 返回幅度谱，``power=2`` 返回功率谱。它只是 :func:`stft`
+    与 :func:`power_spectrum` / :func:`magnitude_spectrum` 的组合封装，
+    方便下游特征直接使用。
+    """
+    spec = stft(signal, n_fft=n_fft, hop_length=hop_length, win_length=win_length, window=window)
+    if power == 1.0:
+        return magnitude_spectrum(spec)
+    if power == 2.0:
+        return power_spectrum(spec)
+    return np.abs(spec).astype(np.float64) ** power
+
+
+def fft_frequencies(sample_rate: int, n_fft: int) -> FloatArray:
+    """返回 ``rfft`` 各频点对应的物理频率（Hz）。"""
+    return np.fft.rfftfreq(n_fft, d=1.0 / sample_rate).astype(np.float64)
