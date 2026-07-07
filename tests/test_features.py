@@ -7,7 +7,7 @@ from collections.abc import Callable
 import numpy as np
 
 from svara.features.cepstral import lfcc, mfcc
-from svara.features.dynamic import delta, delta_delta
+from svara.features.deltas import delta, delta_delta
 from svara.features.shape import (
     spectral_bandwidth,
     spectral_centroid,
