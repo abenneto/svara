@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "svara"
+version = "0.0.0"
+description = "语音特征提取与声学表示工具箱（纯 NumPy/SciPy，离线可复现）"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Rong Shengxue" }]
+dependencies = [
+    "numpy>=1.22",
+    "scipy>=1.8",
+]
+
+[tool.setuptools.packages.find]
+include = ["svara*"]
