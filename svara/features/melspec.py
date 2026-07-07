@@ -47,4 +47,6 @@ def log_mel_spectrogram(
         fmax=fmax,
         window=window,
     )
-    return np.log(mel + log_offset)
+    # 梅尔能量理论上非负，但滤波器组矩阵乘法的浮点舍入可能给出极小的负值，
+    # 这里先夹到 0 再加偏置，避免 log 出现 nan。
+    return np.log(np.maximum(mel, 0.0) + log_offset)
