@@ -22,6 +22,20 @@ def mel_to_hz(mel: FloatArray | float) -> FloatArray:
     return 700.0 * (10.0 ** (np.asarray(mel, dtype=np.float64) / 2595.0) - 1.0)
 
 
+def _triangular_bank(hz_points: FloatArray, fft_freqs: FloatArray) -> FloatArray:
+    """由 ``n_filters + 2`` 个中心频点一次性构造三角滤波器组。
+
+    通过广播把每个滤波器的上升沿 / 下降沿同时算出来，避免逐个滤波器的 Python 循环。
+    """
+    left = hz_points[:-2][:, None]
+    center = hz_points[1:-1][:, None]
+    right = hz_points[2:][:, None]
+    freqs = fft_freqs[None, :]
+    rising = (freqs - left) / np.maximum(center - left, 1e-12)
+    falling = (right - freqs) / np.maximum(right - center, 1e-12)
+    return np.clip(np.minimum(rising, falling), 0.0, None)
+
+
 def mel_filterbank(
     n_filters: int,
     n_fft: int,
@@ -44,14 +58,7 @@ def mel_filterbank(
     fft_freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
     mel_points = np.linspace(hz_to_mel(fmin), hz_to_mel(top), n_filters + 2)
     hz_points = mel_to_hz(mel_points)
-
-    fb = np.zeros((n_filters, fft_freqs.shape[0]), dtype=np.float64)
-    for m in range(1, n_filters + 1):
-        left, center, right = hz_points[m - 1], hz_points[m], hz_points[m + 1]
-        rising = (fft_freqs - left) / max(center - left, 1e-12)
-        falling = (right - fft_freqs) / max(right - center, 1e-12)
-        fb[m - 1] = np.clip(np.minimum(rising, falling), 0.0, None)
-    return fb
+    return _triangular_bank(hz_points, fft_freqs)
 
 
 def linear_filterbank(
@@ -73,11 +80,4 @@ def linear_filterbank(
 
     fft_freqs = np.fft.rfftfreq(n_fft, d=1.0 / sample_rate)
     hz_points = np.linspace(fmin, top, n_filters + 2)
-
-    fb = np.zeros((n_filters, fft_freqs.shape[0]), dtype=np.float64)
-    for m in range(1, n_filters + 1):
-        left, center, right = hz_points[m - 1], hz_points[m], hz_points[m + 1]
-        rising = (fft_freqs - left) / max(center - left, 1e-12)
-        falling = (right - fft_freqs) / max(right - center, 1e-12)
-        fb[m - 1] = np.clip(np.minimum(rising, falling), 0.0, None)
-    return fb
+    return _triangular_bank(hz_points, fft_freqs)
