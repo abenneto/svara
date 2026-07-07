@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy.signal import get_window
 
 from svara.exceptions import InvalidParameterError
 from svara.utils import FloatArray, as_float_array, check_positive
@@ -52,3 +53,18 @@ def frame_signal(
     windows = np.lib.stride_tricks.sliding_window_view(x, frame_length)
     frames = windows[::hop_length]
     return np.ascontiguousarray(frames)
+
+
+def apply_window(frames: FloatArray, window: str = "hann") -> FloatArray:
+    """对每一帧逐点乘上分析窗，抑制截断带来的频谱泄漏。
+
+    ``window`` 会透传给 :func:`scipy.signal.get_window`，因此 ``"hann"``、
+    ``"hamming"``、``("kaiser", 8.0)`` 等写法都支持。传入 ``"boxcar"``
+    等价于不加窗（矩形窗）。
+    """
+    if frames.ndim != 2:
+        raise InvalidParameterError("apply_window 期望二维的帧矩阵")
+    frame_length = frames.shape[1]
+    win = get_window(window, frame_length, fftbins=True).astype(np.float64)
+    return frames * win
+
