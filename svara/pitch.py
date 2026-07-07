@@ -85,3 +85,59 @@ def _cumulative_mean_normalized_difference(diff: FloatArray) -> FloatArray:
     running = np.cumsum(diff[1:])
     out[1:] = diff[1:] * tau / np.maximum(running, np.finfo(np.float64).tiny)
     return out
+
+
+def _parabolic_refine(values: FloatArray, tau: int) -> float:
+    """用抛物线插值在整数极小点附近求亚样本精度的最小位置。"""
+    if tau <= 0 or tau >= values.size - 1:
+        return float(tau)
+    a, b, c = values[tau - 1], values[tau], values[tau + 1]
+    denom = a - 2.0 * b + c
+    if denom == 0.0:
+        return float(tau)
+    return float(tau) + 0.5 * (a - c) / denom
+
+
+def _yin_frame(
+    cmndf: FloatArray, min_lag: int, threshold: float
+) -> float:
+    """对单帧的 CMNDF 做绝对阈值搜索，返回基音周期（样点，可能是小数），清音返回 0。"""
+    tau = min_lag
+    n = cmndf.size
+    while tau < n:
+        if cmndf[tau] < threshold:
+            while tau + 1 < n and cmndf[tau + 1] < cmndf[tau]:
+                tau += 1
+            return _parabolic_refine(cmndf, tau)
+        tau += 1
+    return 0.0
+
+
+def f0_yin(
+    signal: FloatArray,
+    sample_rate: int,
+    fmin: float = DEFAULT_FMIN,
+    fmax: float = DEFAULT_FMAX,
+    frame_length: int = 1024,
+    hop_length: int = 256,
+    threshold: float = 0.1,
+) -> FloatArray:
+    """YIN 算法估计 F0（de Cheveigné & Kawahara, 2002）。
+
+    相比裸自相关，CMNDF + 绝对阈值能显著减少倍频 / 半频错误，
+    抛物线插值进一步提供亚样本精度。找不到低于阈值的滞后即判为清音。
+    """
+    max_lag = int(np.ceil(sample_rate / fmin))
+    min_lag = max(1, int(np.floor(sample_rate / fmax)))
+    if max_lag >= frame_length:
+        raise InvalidParameterError("frame_length 太短，无法覆盖 fmin 对应的周期")
+
+    frames = frame_signal(as_float_array(signal), frame_length, hop_length)
+    f0 = np.zeros(frames.shape[0], dtype=np.float64)
+    for i, frame in enumerate(frames):
+        diff = _difference_function(frame, max_lag + 1)
+        cmndf = _cumulative_mean_normalized_difference(diff)
+        period = _yin_frame(cmndf, min_lag, threshold)
+        if period > 0.0:
+            f0[i] = sample_rate / period
+    return f0
