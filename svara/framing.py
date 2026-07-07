@@ -67,4 +67,3 @@ def apply_window(frames: FloatArray, window: str = "hann") -> FloatArray:
     frame_length = frames.shape[1]
     win = get_window(window, frame_length, fftbins=True).astype(np.float64)
     return frames * win
-

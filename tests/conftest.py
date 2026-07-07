@@ -23,7 +23,9 @@ def sr() -> int:
 def sine() -> Callable[..., np.ndarray]:
     """返回一个生成正弦波的工厂函数。"""
 
-    def _make(freq: float = 220.0, sr: int = SR, duration: float = 1.0, amp: float = 0.8) -> np.ndarray:
+    def _make(
+        freq: float = 220.0, sr: int = SR, duration: float = 1.0, amp: float = 0.8
+    ) -> np.ndarray:
         t = np.arange(int(sr * duration)) / sr
         return (amp * np.sin(2.0 * np.pi * freq * t)).astype(np.float64)
 
@@ -34,7 +36,9 @@ def sine() -> Callable[..., np.ndarray]:
 def chirp() -> Callable[..., np.ndarray]:
     """线性扫频信号，用来检查时频相关的实现。"""
 
-    def _make(f0: float = 100.0, f1: float = 4000.0, sr: int = SR, duration: float = 1.0) -> np.ndarray:
+    def _make(
+        f0: float = 100.0, f1: float = 4000.0, sr: int = SR, duration: float = 1.0
+    ) -> np.ndarray:
         n = int(sr * duration)
         t = np.arange(n) / sr
         k = (f1 - f0) / duration

@@ -25,9 +25,7 @@ def as_float_array(x: ArrayLike) -> FloatArray:
     """
     arr = np.asarray(x, dtype=np.float64)
     if arr.ndim != 1:
-        raise InvalidParameterError(
-            f"期望一维信号，得到的是 {arr.ndim} 维数组"
-        )
+        raise InvalidParameterError(f"期望一维信号，得到的是 {arr.ndim} 维数组")
     return np.ascontiguousarray(arr)
 
 
