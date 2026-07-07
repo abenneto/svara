@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 
 from svara.exceptions import InvalidParameterError
@@ -178,3 +180,35 @@ def f0_cepstrum(
     voiced = peak > prominence * baseline
     f0 = np.where(best > 0, sample_rate / best, 0.0)
     return np.where(voiced, f0, 0.0)
+
+
+#: 方法名 -> 估计函数的映射，供 :func:`estimate_f0` 分派。
+_METHODS: dict[str, Callable[..., FloatArray]] = {
+    "autocorrelation": f0_autocorrelation,
+    "yin": f0_yin,
+    "cepstrum": f0_cepstrum,
+}
+
+
+def estimate_f0(
+    signal: FloatArray,
+    sample_rate: int,
+    method: str = "yin",
+    **kwargs: object,
+) -> FloatArray:
+    """按名称选择估计器的统一入口。
+
+    ``method`` 可取 ``"autocorrelation"``、``"yin"``、``"cepstrum"``，其余关键字
+    参数原样透传给对应实现。
+    """
+    try:
+        fn = _METHODS[method]
+    except KeyError:
+        valid = ", ".join(sorted(_METHODS))
+        raise InvalidParameterError(f"未知的 F0 估计方法 {method!r}，可选：{valid}") from None
+    return fn(signal, sample_rate, **kwargs)
+
+
+def voiced_flags(f0: FloatArray) -> FloatArray:
+    """把 F0 序列转成布尔的清浊音标记（``f0 > 0`` 记为浊音）。"""
+    return f0 > 0.0
