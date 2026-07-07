@@ -6,6 +6,8 @@ import numpy as np
 from scipy.fft import dct
 
 from svara.features.melspec import log_mel_spectrogram
+from svara.filterbanks import linear_filterbank
+from svara.spectral import spectrogram
 from svara.utils import FloatArray
 
 
@@ -57,4 +59,28 @@ def mfcc(
         fmax=fmax,
     )
     cepstra = dct_ii(log_mel, n_mfcc)
+    return sinusoidal_lifter(cepstra, lift=lift)
+
+
+def lfcc(
+    signal: FloatArray,
+    sample_rate: int,
+    n_lfcc: int = 13,
+    n_fft: int = 512,
+    hop_length: int | None = None,
+    n_filters: int = 40,
+    fmin: float = 0.0,
+    fmax: float | None = None,
+    lift: int = 22,
+    log_offset: float = 1e-6,
+) -> FloatArray:
+    """线性频率倒谱系数（LFCC）。
+
+    与 MFCC 唯一的区别是使用 Hz 轴等间隔的线性滤波器组，因此对高频细节
+    更敏感，常用于反欺骗 / 声纹等任务。
+    """
+    psd = spectrogram(signal, n_fft=n_fft, hop_length=hop_length, power=2.0)
+    fb = linear_filterbank(n_filters, n_fft, sample_rate, fmin=fmin, fmax=fmax)
+    log_energy = np.log(psd @ fb.T + log_offset)
+    cepstra = dct_ii(log_energy, n_lfcc)
     return sinusoidal_lifter(cepstra, lift=lift)
