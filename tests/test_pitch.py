@@ -69,3 +69,9 @@ def test_noise_is_mostly_unvoiced(white_noise: Callable[..., np.ndarray], sr: in
 def test_voiced_flags_dtype() -> None:
     flags = voiced_flags(np.array([0.0, 120.0, 0.0, 200.0]))
     assert flags.tolist() == [False, True, False, True]
+
+
+def test_autocorrelation_subsample_refinement(sine: Callable[..., np.ndarray], sr: int) -> None:
+    # 223 Hz 的周期不是整数样点，插值细化后应比整数滞后更准
+    f0 = f0_autocorrelation(sine(freq=223.0, sr=sr, duration=0.5), sr)
+    assert _voiced_median(f0) == pytest.approx(223.0, abs=2.0)
